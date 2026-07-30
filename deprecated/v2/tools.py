@@ -6,6 +6,9 @@ RigBox Tools
 import maya.cmds as cmds
 import maya.api.OpenMaya as om
 
+# -----------------------------
+
+# Generic Tools
 def query_location(name):
     result = cmds.xform(name, q=True, t=True)
         
@@ -15,32 +18,10 @@ def query_rotation(name):
     result = cmds.xform(name, q=True, ws=True, ro=True)
         
     return result
-    
-def average_location(primaryAxis, lastJoint):
-    lastJoint_pos = cmds.xform(lastJoint, q=True, t=True)
-    
-    if primaryAxis == "X":
-        result = lastJoint_pos[0]/2 
-        finalResult = (result, 0,0)     
-    if primaryAxis == "Y":
-        result = lastJoint_pos[1]/2
-        finalResult = (0,result,0)        
-    if primaryAxis == "Z":
-        result = lastJoint_pos[2]/2
-        finalResult = (0,0,result)
-        
-    if primaryAxis == "-X":
-        result = lastJoint_pos[0]/2 
-        finalResult = ((result*-1), 0,0)     
-    if primaryAxis == "-Y":
-        result = lastJoint_pos[1]/2
-        finalResult = (0,(result*-1),0)        
-    if primaryAxis == "-Z":
-        result = lastJoint_pos[2]/2
-        finalResult = (0,0,(result*-1))            
-        
-    return finalResult
-    
+
+# ----------------------------- 
+
+# Skeleton Creation Tools
 def create_joint_chain(primaryAxis, upAxis, jointList):
     if primaryAxis == "X":
         aim = (1,0,0)            
@@ -73,6 +54,34 @@ def create_joint_chain(primaryAxis, upAxis, jointList):
         cmds.delete(aim_joint) # Delete aim constraint
         cmds.makeIdentity(apply=True, r=True) # Zero joint rotations
         cmds.parent(jointList[i+1], jointList[i]) # Make parent relationship
+
+# -----------------------------
+
+# Roll System Tools
+def average_location(primaryAxis, lastJoint):
+    lastJoint_pos = cmds.xform(lastJoint, q=True, t=True)
+    
+    if primaryAxis == "X":
+        result = lastJoint_pos[0]/2 
+        finalResult = (result, 0,0)     
+    if primaryAxis == "Y":
+        result = lastJoint_pos[1]/2
+        finalResult = (0,result,0)        
+    if primaryAxis == "Z":
+        result = lastJoint_pos[2]/2
+        finalResult = (0,0,result)
+        
+    if primaryAxis == "-X":
+        result = lastJoint_pos[0]/2 
+        finalResult = ((result*-1), 0,0)     
+    if primaryAxis == "-Y":
+        result = lastJoint_pos[1]/2
+        finalResult = (0,(result*-1),0)        
+    if primaryAxis == "-Z":
+        result = lastJoint_pos[2]/2
+        finalResult = (0,0,(result*-1))            
+        
+    return finalResult
 
 def create_roll_sys(name, inJoint, outJoint, primaryAxis, factor):    
     sys_node = cmds.createNode("multiplyDivide", n=name)
@@ -114,6 +123,25 @@ def single_chain_ik(name, start, end, parent=None):
     
     print(ik_effector)    
     return ik_effector
+
+# -----------------------------
+
+# IK/FK System Tools
+def create_IKFKchains(inList, jointType, outList):
+    for joint in inList:
+        joint_pos = cmds.xform(joint, q=True, ws=True, t=True)
+        joint_rot = cmds.xform(joint, q=True, ws=True, ro=True)
+        
+        new_joint = cmds.createNode("joint", n=f"{jointType}_{joint}")
+        cmds.xform(new_joint, t=joint_pos, ro=joint_rot)
+        cmds.makeIdentity(new_joint, apply=True, r=True)
+        
+        outList.append(new_joint)
+        
+    for i in range(len(outList)-1):
+        cmds.parent(outList[i+1], outList[i])
+        
+    group = cmds.group(outList[0], n=jointType)
     
 def pole_vector(startJoint, midJoint, endJoint, name, distance):
     start = cmds.xform(start, q=True, ws=True, t=True)
