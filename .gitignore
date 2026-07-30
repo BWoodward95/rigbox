@@ -1,0 +1,55 @@
+# Byte-compiled / optimized Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Test / type-check / lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Editors and IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# AI tooling (local/editor config)
+.cursor/
+.continue/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Maya
+mayaLog.txt
+mayaBatchRender.log
+*.mayaSwatches
+*/mayaSwatches/
+
+# Logs and temp files
+*.log
+*.tmp

@@ -1,0 +1,9 @@
+{
+    "templates": {
+        "fk": {
+            "label": "FK Guide",
+            "description": "FK joint guide locator.",
+            "tool call": "guides.fk.guide"
+        }
+    }
+}

@@ -1,5 +1,6 @@
 '''Metadata Tagging for Maya'''
 
+# Maya Imports
 import maya.cmds as cmds
 
 class tag():
