@@ -1,9 +1,95 @@
 {
     "templates": {
         "fk": {
-            "label": "FK Guide",
-            "description": "FK joint guide locator.",
-            "tool call": "guides.fk.guide"
+            "label": "FK ",
+            "description": "Single FK Rig.",
+            "tool call": {
+                "guide": {
+                    "module": "guides.fk.guide",
+                    "class": "fk",
+                    "args": {
+                        "name": "fk",
+                        "module": "fk"
+                    }
+                },
+                "rig": {
+                    "module": "modules.fk.module",
+                    "class": "fk",
+                    "args": {
+                        "name": "fk",
+                        "module": "fk"
+                    }
+                }
+            }
+        },
+
+        "ik chain": {
+            "label": "IK Chain Guide",
+            "description": "IK chain joint guide locator.",
+            "tool call": {
+                "guide": {
+                    "module": "guides.ik.guide",
+                    "class": "ik",
+                    "args": {
+                        "name": "ik",
+                        "module": "ik"
+                    }
+                },
+                "rig": {
+                    "module": "modules.ik.module",
+                    "class": "ik",
+                    "args": {
+                        "name": "ik",
+                        "module": "ik"
+                    }
+                }
+            }
+        },
+
+        "Root": {
+            "label": "Single Root Rig.",
+            "description": "Single Root Rig.",
+            "tool call": {
+                "guide": {
+                    "module": "guides.root.guide",
+                    "class": "root",
+                    "args": {
+                        "name": "root",
+                        "module": "root"
+                    }
+                },
+                "rig": {
+                    "module": "modules.root.module",
+                    "class": "root",
+                    "args": {
+                        "name": "root",
+                        "module": "root"
+                    }
+                }
+            }
+        },
+
+        "Spine": {
+            "label": "Spine Guide",
+            "description": "Spine joint guide locator.",
+            "tool call": {
+                "guide": {
+                    "module": "guides.spine.guide",
+                    "class": "spine",
+                    "args": {
+                        "name": "spine",
+                        "module": "spine"
+                    }
+                },
+                "rig": {
+                    "module": "modules.spine.module",
+                    "class": "spine",
+                    "args": {
+                        "name": "spine",
+                        "module": "spine"
+                    }
+                }
+            }
         }
     }
 }

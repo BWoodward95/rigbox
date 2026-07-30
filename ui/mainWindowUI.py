@@ -40,6 +40,7 @@ class mainWindowUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         self.title_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
         self.guide_list_widget = guideListWidget.widget()
+        self.build_joints_button = buildJointsButton.widget()
 
     def create_layout(self):
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -49,6 +50,7 @@ class mainWindowUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         main_layout.addWidget(self.title_label)
         main_layout.addStretch()
         main_layout.addWidget(self.guide_list_widget)
+        main_layout.addWidget(self.build_joints_button)
 
     @classmethod
     def show_ui(cls, dockable=True):

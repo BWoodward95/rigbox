@@ -24,4 +24,5 @@ class guide():
         
         cmds.rename(guide_transform, self.name)
         
+        self.guide = guide_transform
         return guide
