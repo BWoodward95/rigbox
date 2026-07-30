@@ -15,7 +15,7 @@ class joint():
 
 class control():
     def __init__(self, name, xform, parent=None):
-        self.control = cmds.createNode('nurbsCircle')
+        self.control = cmds.circle()
         cmds.rename(self.control, name)
 
         cmds.xform(self.control, worldSpace=True, translation=xform['translation'], rotation=xform['rotation'])

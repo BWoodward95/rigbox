@@ -4,10 +4,8 @@
 import maya.cmds as cmds
 
 class tag():
-    def __init__(self):
-        pass
-
-    def create(self, target, longname, data=None, shortname=None, nicename=None, locked=True):
+    @staticmethod
+    def create(target, longname, data=None, shortname=None, nicename=None, locked=True):
         '''Create a string attribute with metadata.'''
         if not target or not longname:
             raise ValueError
@@ -28,7 +26,9 @@ class tag():
 
         cmds.setAttr(metadata, lock=locked)
 
-    def destroy(self, target, longname):
+    @staticmethod
+    def destroy(target, longname):
+        '''Destroy a string attribute with metadata.'''
         if not target or not longname:
             raise ValueError
         else:

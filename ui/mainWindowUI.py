@@ -10,7 +10,7 @@ from PySide6 import QtCore, QtWidgets
 from shiboken6 import wrapInstance
 
 # Rigbox Imports
-from ui.widgets import guideListWidget
+from ui.widgets import guidetemplateList, buildjointsButton
 
 def maya_main_window():
     main_window_ptr = omui.MQtUtil.mainWindow()
@@ -39,8 +39,8 @@ class mainWindowUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         self.title_label = QtWidgets.QLabel(self.WINDOW_TITLE)
         self.title_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
-        self.guide_list_widget = guideListWidget.widget()
-        self.build_joints_button = buildJointsButton.widget()
+        self.guide_list_widget = guidetemplateList.widget()
+        self.build_joints_button = buildjointsButton.widget()
 
     def create_layout(self):
         main_layout = QtWidgets.QVBoxLayout(self)

@@ -17,12 +17,12 @@ class guide():
         guide = cmds.createNode('locator')
         guide_transform = cmds.listRelatives(guide, parent=True)[0]
 
-        tag.create(self, guide, 'componentType', 'guide', locked=True)
-        tag.create(self, guide, 'module', self.module, locked=True)
-        tag.create(self, guide, 'subModule', self.submodule, locked=True)
-        tag.create(self, guide, 'side', self.side, locked=True)
+        tag.create(guide_transform, 'componentType', 'guide', locked=True)
+        tag.create(guide_transform, 'module', self.module, locked=True)
+        tag.create(guide_transform, 'subModule', self.submodule, locked=True)
+        tag.create(guide_transform, 'side', self.side, locked=True)
         
         cmds.rename(guide_transform, self.name)
         
         self.guide = guide_transform
-        return guide
+        return guide_transform

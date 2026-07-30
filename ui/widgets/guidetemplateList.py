@@ -49,7 +49,7 @@ class widget(QtWidgets.QWidget):
         # Get the item key and template data
         item_key = item.text()
         template = self.template_data['templates'][item_key]
-        tool_call_path = template['tool call']
+        tool_call_path = template['tool call']['guide']
 
         # Import the guide module and class
         if isinstance(tool_call_path, str):
