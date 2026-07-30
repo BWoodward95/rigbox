@@ -1,10 +1,12 @@
 import maya.cmds as cmds
 
-from rigbox import tools, labels, spine, hands
+from rigbox import tools, labels, root, spine, hands
 
 class ImportArms():
     
     def __init__(self):
+        self.root = root.ImportRoot()
+        
         # Declare variables
         self.clavicle_L = None
         self.upperArm_L = None
@@ -100,7 +102,9 @@ class ImportArms():
         self.upperArm_roll_L = tools.create_roll_jnt(f"{labels.JNT[10]}_roll{labels.SIDE[1]}{labels.SUF[0]}", self.shoulder_roll_L, self.lowerArm_L)
         labels.deformJoint_list.append(self.upperArm_roll_L)
        
-        self.shoulder_L_poleVector = tools.single_chain_ik(f"{labels.JNT[10]}{labels.SIDE[1]}{labels.SUF[3]}", self.shoulder_roll_L, self.upperArm_roll_L, self.lowerArm_L) 
+        self.shoulder_L_poleVector = tools.single_chain_ik(f"{labels.JNT[10]}{labels.SIDE[1]}{labels.SUF[3]}", self.shoulder_roll_L, self.upperArm_roll_L, self.root.root) 
+    
+        self.shoulder_roll_L_aim = cmds.createNode("joint", n=f"{labels.JNT[9]}_aim{labels.SIDE[1]}{labels.SUF[0]}")
     
         self.lowerArm_roll_L = tools.create_roll_jnt(f"{labels.JNT[11]}_roll{labels.SIDE[1]}{labels.SUF[0]}", self.lowerArm_L, self.wrist_L)           
         labels.deformJoint_list.append(self.lowerArm_roll_L)
@@ -111,7 +115,7 @@ class ImportArms():
         self.upperArm_roll_R = tools.create_roll_jnt(f"{labels.JNT[10]}_roll{labels.SIDE[2]}{labels.SUF[0]}", self.shoulder_roll_R, self.lowerArm_R)
         labels.deformJoint_list.append(self.upperArm_roll_R)
 
-        self.shoulder_R_poleVector = tools.single_chain_ik(f"{labels.JNT[10]}{labels.SIDE[2]}{labels.SUF[3]}", self.shoulder_roll_R, self.upperArm_roll_R, self.lowerArm_R) 
+        self.shoulder_R_poleVector = tools.single_chain_ik(f"{labels.JNT[10]}{labels.SIDE[2]}{labels.SUF[3]}", self.shoulder_roll_R, self.upperArm_roll_R, self.root.root) 
        
         self.lowerArm_roll_R = tools.create_roll_jnt(f"{labels.JNT[11]}_roll{labels.SIDE[2]}{labels.SUF[0]}", self.lowerArm_R, self.wrist_R)           
         labels.deformJoint_list.append(self.lowerArm_roll_R)
