@@ -3,9 +3,11 @@
 import maya.cmds as cmds
 
 from metadata.tag import tag
+from metadata.query import query
 
 class guide():
-    def __init__(self, name, module=None, submodule=None, side=None):
+    def __init__(self, name, module=None, submodule=None, side=None, parent=None):
+        self.parent = parent
         self.name = f'{name}_guide'
         self.module = module
         self.submodule = submodule
@@ -22,7 +24,10 @@ class guide():
         tag.create(guide_transform, 'subModule', self.submodule, locked=True)
         tag.create(guide_transform, 'side', self.side, locked=True)
         
-        cmds.rename(guide_transform, self.name)
-        
+        guide_transform = cmds.rename(guide_transform, self.name)
+
+        if self.parent and self.parent != guide_transform and query.is_guide(self.parent):
+            cmds.parent(guide_transform, self.parent)
+
         self.guide = guide_transform
         return guide_transform
