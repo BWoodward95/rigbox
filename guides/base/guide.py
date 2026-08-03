@@ -1,4 +1,7 @@
-''' Base Guide Element'''
+''' Base Guide Element
+
+Refer to METADATA_SCHEMA.md for more information.
+'''
 
 import maya.cmds as cmds
 

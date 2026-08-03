@@ -1,6 +1,7 @@
 # Maya Imports
 import maya.cmds as cmds
 
+ATTR_GUIDE_NODE = 'guideNode'
 ATTR_COMPONENT_TYPE = 'componentType'
 ATTR_MODULE = 'module'
 ATTR_SUBMODULE = 'subModule'
@@ -44,3 +45,54 @@ class query():
             }
         }
 
+    @staticmethod
+    def is_joint(node):
+        if node is None or not cmds.objExists(node):
+            return False
+        if not cmds.attributeQuery(ATTR_COMPONENT_TYPE, node=node, exists=True):
+            return False
+        
+        if not cmds.getAttr(f'{node}.{ATTR_COMPONENT_TYPE}') == 'joint':
+            return False
+        return True
+
+    @staticmethod
+    def find_joints(module=None):
+        
+        joints = []
+
+        for node in cmds.ls(type='transform'):
+            if query.is_joint(node):
+                if module is None or cmds.getAttr(f'{node}.{ATTR_MODULE}') == module:
+                    joints.append(node)
+        return joints
+
+    @staticmethod
+    def find_joint_for_guide(guide_node):
+        module = cmds.getAttr(f'{guide_node}.{ATTR_MODULE}')
+        for joint in query.find_joints(module):
+            if cmds.getAttr(f'{joint}.{ATTR_GUIDE_NODE}') == guide_node:
+                return joint
+        return None
+    
+    @staticmethod
+    def is_control(node):
+        if node is None or not cmds.objExists(node):
+            return False
+        if not cmds.attributeQuery(ATTR_COMPONENT_TYPE, node=node, exists=True):
+            return False
+        
+        if not cmds.getAttr(f'{node}.{ATTR_COMPONENT_TYPE}') == 'control':
+            return False
+        return True
+
+    @staticmethod
+    def find_controls(module=None):
+        
+        controls = []
+
+        for node in cmds.ls(type='transform'):
+            if query.is_control(node):
+                if module is None or cmds.getAttr(f'{node}.{ATTR_MODULE}') == module:
+                    controls.append(node)
+        return controls

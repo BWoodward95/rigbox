@@ -43,5 +43,26 @@ class build():
             rig_module = importlib.import_module(rig_call['module'])
             rig_cls = getattr(rig_module, rig_call['class'])
 
-            joint = rig_cls(guide_node).build()
+            joint = rig_cls(guide_node).build_joints()
             print(f'RigBox: Built {joint} from {guide_node}')
+    
+    def build_controls(self):
+        guides_in_scene = query.find_guides()
+        rig_lookup = self._rig_lookup()
+
+        if not guides_in_scene:
+            print('RigBox: No Guides Found in Scene')
+            return
+
+        for guide_node in guides_in_scene:
+            module_name = query.read_guide_data(guide_node)['module']
+            rig_call = rig_lookup.get(module_name)
+            if not rig_call:
+                print(f'RigBox: No Rig Call Found for "{module_name}" ({guide_node})')
+                continue
+
+            rig_module = importlib.import_module(rig_call['module'])
+            rig_cls = getattr(rig_module, rig_call['class'])
+
+            control = rig_cls(guide_node).build_controls()
+            print(f'RigBox: Built {control} from {guide_node}')
