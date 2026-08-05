@@ -15,8 +15,9 @@ import guides
 from metadata.query import query
 
 class widget(QtWidgets.QWidget):
-    def __init__(self):
+    def __init__(self, on_guide_spawned=None):
         super().__init__()
+        self.on_guide_spawned = on_guide_spawned
 
             # Load the template data
         with open(os.path.join(guides.__path__[0], 'templates.json'), 'r') as f:
@@ -27,7 +28,6 @@ class widget(QtWidgets.QWidget):
         self.create_connections()
 
     def create_widgets(self):
-
         self.title_label = QtWidgets.QLabel('Guide Templates')
         self.title_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
@@ -75,3 +75,5 @@ class widget(QtWidgets.QWidget):
         call_args['parent'] = parent_guide
         guide_cls(**call_args)
 
+        if self.on_guide_spawned:
+            self.on_guide_spawned()

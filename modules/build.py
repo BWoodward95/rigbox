@@ -44,7 +44,8 @@ class build():
             rig_cls = getattr(rig_module, rig_call['class'])
 
             joint = rig_cls(guide_node).build_joints()
-            print(f'RigBox: Built {joint} from {guide_node}')
+            if joint:
+                print(f'RigBox: Built {joint} from {guide_node}')
     
     def build_controls(self):
         guides_in_scene = query.find_guides()
@@ -65,4 +66,5 @@ class build():
             rig_cls = getattr(rig_module, rig_call['class'])
 
             control = rig_cls(guide_node).build_controls()
-            print(f'RigBox: Built {control} from {guide_node}')
+            if control:
+                print(f'RigBox: Built {control} from {guide_node}')

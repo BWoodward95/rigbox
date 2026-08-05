@@ -19,23 +19,23 @@ Full roadmap: Cursor plan **RigBox Structured Project Plan** (Phases 0–8).
 | **1d** | FK guide pass-through + selection parenting | Complete |
 | **2** | Module base class + rig naming conventions | Complete |
 | **2c** | Document metadata schema | Complete |
-| **3** | Build Controls pipeline | **Next** |
-| **4** | Elements UI widget | Pending |
-| **5** | Humanoid guides/modules (Root, Spine, limbs, etc.) | Pending |
+| **3** | Build Controls pipeline | Complete |
+| **4** | Elements UI widget | Complete |
+| **4c** | Drag-drop reparent guides | Complete |
+| **5** | Humanoid guides/modules (Root, Spine, limbs, etc.) | **Next** |
 | **6** | Skin workflow | Pending |
 | **7** | Camera + Metahuman | Pending |
 | **8** | Distribution + polish | Pending |
 
 ---
 
-## What works (verified through Phase 2c)
+## What works (verified through Phase 4)
 
-- `from ui.mainWindowUI import show; show()` — dockable UI
-- Double-click **fk** template → tagged `fk_guide` locator
-- Select `fk_guide` → spawn second FK → new guide parents under selected guide
-- **Build Joints** → tagged `fk_jnt` at guide world position
-- `metadata/query.py` — `is_guide`, `is_joint`, `is_control`, `find_guides`, `find_joints`, `find_controls`
-- Schema reference: [`docs/METADATA_SCHEMA.md`](docs/METADATA_SCHEMA.md)
+- Full FK pipeline: guides → Build Joints → Build Controls
+- **Elements** tree: hierarchy, joint/control children, click-to-select, Refresh
+- Guide rename in tree + `guideNode` sync on built nodes
+- Drag-drop reparent guides (cycle guard, `query.is_guide` on parent)
+- Auto-refresh after guide spawn and build actions
 
 ---
 
@@ -55,12 +55,12 @@ Full roadmap: Cursor plan **RigBox Structured Project Plan** (Phases 0–8).
 
 ## Resume here
 
-**Phase 3** — Build Controls pipeline.
+**Phase 5** — Humanoid guides/modules (Root, Spine, limbs).
 
-1. Ask agent for Phase 3 breakdown or implement manually.
-2. Check in with *"Phase 3 done — please review"*.
+1. Ask agent for Phase 5 breakdown or implement manually.
+2. Check in with *"Phase 5 done — please review"* (or per sub-phase).
 
-**Phase 2 (complete):** base `module` class, naming/tagging (2b), metadata schema + query API (2c).
+**Phase 4 (complete):** Elements UI — tree (4a), rename (4b), drag-drop reparent (4c).
 
 ---
 

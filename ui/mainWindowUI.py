@@ -10,7 +10,7 @@ from PySide6 import QtCore, QtWidgets
 from shiboken6 import wrapInstance
 
 # Rigbox Imports
-from ui.widgets import guidetemplateList, buildjointsButton
+from ui.widgets import guidetemplateList, buildjointsButton, buildcontrolsButton, elementsList
 
 def maya_main_window():
     main_window_ptr = omui.MQtUtil.mainWindow()
@@ -39,18 +39,29 @@ class mainWindowUI(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         self.title_label = QtWidgets.QLabel(self.WINDOW_TITLE)
         self.title_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
-        self.guide_list_widget = guidetemplateList.widget()
-        self.build_joints_button = buildjointsButton.widget()
+        self.elements_list_widget = elementsList.widget()
+        refresh = self.elements_list_widget.refresh
+
+        self.guide_list_widget = guidetemplateList.widget(on_guide_spawned=refresh)
+        self.build_joints_button = buildjointsButton.widget(on_complete=refresh)
+        self.build_controls_button = buildcontrolsButton.widget(on_complete=refresh)
+
 
     def create_layout(self):
+
+        lists_layout = QtWidgets.QHBoxLayout()
+        lists_layout.addWidget(self.guide_list_widget)
+        lists_layout.addWidget(self.elements_list_widget)
+
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(8, 8, 8, 8)
         main_layout.setSpacing(6)
 
         main_layout.addWidget(self.title_label)
         main_layout.addStretch()
-        main_layout.addWidget(self.guide_list_widget)
+        main_layout.addLayout(lists_layout)
         main_layout.addWidget(self.build_joints_button)
+        main_layout.addWidget(self.build_controls_button)
 
     @classmethod
     def show_ui(cls, dockable=True):

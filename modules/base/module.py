@@ -83,6 +83,9 @@ class module():
             cmds.group(empty=True, name=RIG_GROUP)
         return RIG_GROUP
 
+    def build_joints(self):
+        raise NotImplementedError('RigBox: Joints are not implemented yet')
+
     def build_controls(self):
         raise NotImplementedError('RigBox: Controls are not implemented yet')
 
