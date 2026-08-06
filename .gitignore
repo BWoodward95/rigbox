@@ -35,10 +35,6 @@ dist/
 *.swo
 *~
 
-# AI tooling (local/editor config)
-.cursor/
-.continue/
-
 # OS files
 .DS_Store
 Thumbs.db

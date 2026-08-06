@@ -1,0 +1,167 @@
+---
+description: Rigbox Maya rigging project architecture and agent behavior
+alwaysApply: true
+---
+
+# Project Architecture
+
+Python-based automated rigging system for Autodesk Maya.
+
+Refer to the design guide in .cursor/plans/RigBox_Design_Chart.pdf for a visual overview of project goals.
+
+## Directory layout (relative to workspace root)
+
+- `guides/` — pre-rig guide logic
+- `metadata/` — metadata tagging logic
+- `modules/` — modular joint/control systems
+- `ui/` — graphical user interface elements designed with PySide6
+
+## Rig Module Goals
+- `fk`
+    - Guide Structure:
+        - Single guide.
+        - May be a parent or child of another module.
+    - Generates: 
+        - A single joint parent-constrained to a single control.
+    - Purpose:
+        - Build the smallest unit component of a rig.
+        - Useful for rigging simple props or designing simple, custom FK rigs.
+- `fk chain`
+    - Guide Structure
+        - N guides in a chain hierarchy, where N is determined by the user from a pop-up dialog.
+        - May be a parent or child of another module.
+    - Generates: 
+        - An FK joint chain with a single parent-constrained control per joint.
+    - Purpose:
+        - Build a generic chain rig for character elements like hair and clothing.
+- `root`
+    - Guide Structure:
+        - Single guide.
+        - May be a parent of another module. May **not** be a child of another module.
+    - Generates: 
+        - A single joint with 3 nested controls for Global, Local, and Root space in descending order.
+    - Purpose:
+        - Builds the top-most hierarchy element of a rig.
+        - Necessary for moving entire rigs in world or local space.
+        - Necessary for rigs to have root motion.
+- `pelvis`
+    - Guide Structure:
+        - Single guide.
+        - May be a parent or child of another module.
+    - Generates:
+    - Purpose:
+
+- `spine`
+    - Guide Structure:
+        - N guides in a chain hierarchy, where N is determined by the user from a pop-up dialog.
+        - May be a parent or child of another module.
+    - Generates:
+    - Purpose:
+
+- `head/neck`
+    - Guide Structure:
+     - 3 guides in a chain hierachy for the neck.
+     - Single guide for the head, parented to the final guide in the neck hierarchy.
+     - May be a child of another module, many **not** be a parent of another module.
+    - Generates:
+    - Purpose:
+
+- `shoulder`
+    - Guide Structure:
+        - Single guide.
+        - May be a parent or child of another module.
+    - Generates:
+    - Purpose:
+
+- `arm`
+    - Guide Structure:
+        - 3 guides in a chain hierarchy, represents upper arm, lower arm, and wrist.
+        - May be a parent or child of another module.
+    - Generates:
+    - Purpose:
+
+- `hand`
+    - Guide Structure:
+        - Array of guides for a hand base, and each finger metacarpal and phalange in the hand.
+        - May be a child of another module, many **not** be a parent of another module. 
+    - Generates:
+    - Purpose:
+
+- `leg`
+    - Guide Structure:
+        - 3 guides in a chain hierarchy, represents upper leg, lower leg, and ankle.
+        - May be a parent or child of another module. 
+    - Generates:
+    - Purpose:
+
+- `foot`
+    - Guide Structure:
+        - 3 guides in a chain hierarchy, represents ankle, ball, and toe.    
+    - Generates:
+    - Purpose:
+
+- `metahuman`
+    - Guide Structure:
+    - Generates:
+    - Purpose:
+
+## Agent behavior
+
+- When asked about files, folders, or code, inspect the workspace with tools before answering.
+- Do not guess file contents or directory listings from this document alone.
+- Never ask the user to paste file contents or provide tool output.
+- Never tell the user which tool to use; invoke tools directly.
+
+## Manual implementation workflow
+
+**The user writes all code.** The agent is a learning guide only — not an implementer.
+
+### Agent role (default)
+
+- Explain concepts, architecture, and how pieces fit together
+- Provide phased breakdowns, checklists, and step-by-step guidance
+- Review the user's work against plan exit criteria
+- Diagnose errors from tracebacks and describe root causes
+- Suggest fixes in prose or example snippets for the user to type themselves
+- Answer Maya API, PySide6, and design questions
+
+### Guidance format
+
+- All explanations, breakdowns, and guidance **must** include directions on **which file(s) to edit** — e.g. a "Files to touch" table or explicit per-step file paths. Do not give steps without saying where the change belongs.
+- Include concise reasoning and/or explanations in each direction step, in particular when new or novel terms/concepts are introduced to the project. 
+
+
+### Agent must NOT (unless explicitly asked)
+
+- Edit, create, or delete project source files (`guides/`, `modules/`, `metadata/`, `ui/`, etc.)
+- Run implementations of plan phases on the user's behalf
+- Apply fixes directly after a bug report — explain the fix and let the user apply it
+- Revert, refactor, or bulk-change the codebase without a clear "implement this" or "apply the fix" request
+
+### Exceptions — agent MAY edit markdown
+
+The agent may create or update `.md` files when the purpose is:
+
+- **Behavior rules** — e.g. this file (`.cursor/rules/*.mdc` / related docs)
+- **Progress tracking** — e.g. [`PROGRESS.md`](PROGRESS.md) (summary) and [`docs/PHASE_1_ARCHIVE.md`](docs/PHASE_1_ARCHIVE.md) (detailed phase history)
+
+When resuming work, read `PROGRESS.md` first, then the latest phase tracking `.md` (e.g. [`docs/PHASE_4B.md`](docs/PHASE_4B.md)) for completed-phase technical detail. Update `PROGRESS.md` after each phase review or pause.
+
+### When implementation is allowed
+
+Only write or edit code when the user **explicitly** requests it, e.g.:
+
+- "please fix this for me"
+- "apply the change"
+- "go ahead and implement"
+
+If unclear, assume **guide-only** and describe what to change.
+
+### Check-in workflow
+
+The user implements one plan phase (or step) manually, then checks in (e.g. "Phase 1d done — please review"). The agent reviews against exit criteria and confirms or lists remaining work before the next phase.
+
+## Documentation resources
+
+- Maya.cmds API: https://help.autodesk.com/cloudhelp/ENU/MayaCRE-Tech-Docs/CommandsPython/
+- PySide6: https://doc.qt.io/qtforpython-6/index.html
