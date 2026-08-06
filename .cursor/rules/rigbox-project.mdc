@@ -17,6 +17,8 @@ Refer to the design guide in .cursor/plans/RigBox_Design_Chart.pdf for a visual 
 - `ui/` — graphical user interface elements designed with PySide6
 
 ## Rig Module Goals
+All guides and modules should extend logic from `guides/base/` and `modules/base/` respectively.
+
 - `fk`
     - Guide Structure:
         - Single guide.
@@ -26,6 +28,7 @@ Refer to the design guide in .cursor/plans/RigBox_Design_Chart.pdf for a visual 
     - Purpose:
         - Build the smallest unit component of a rig.
         - Useful for rigging simple props or designing simple, custom FK rigs.
+
 - `fk chain`
     - Guide Structure
         - N guides in a chain hierarchy, where N is determined by the user from a pop-up dialog.
@@ -34,6 +37,7 @@ Refer to the design guide in .cursor/plans/RigBox_Design_Chart.pdf for a visual 
         - An FK joint chain with a single parent-constrained control per joint.
     - Purpose:
         - Build a generic chain rig for character elements like hair and clothing.
+
 - `root`
     - Guide Structure:
         - Single guide.
@@ -44,19 +48,17 @@ Refer to the design guide in .cursor/plans/RigBox_Design_Chart.pdf for a visual 
         - Builds the top-most hierarchy element of a rig.
         - Necessary for moving entire rigs in world or local space.
         - Necessary for rigs to have root motion.
-- `pelvis`
-    - Guide Structure:
-        - Single guide.
-        - May be a parent or child of another module.
-    - Generates:
-    - Purpose:
 
 - `spine`
     - Guide Structure:
         - N guides in a chain hierarchy, where N is determined by the user from a pop-up dialog.
         - May be a parent or child of another module.
     - Generates:
+        - Base guide generates a COG (center of gravity) joint. Subsequent guides generate N-1 spine joints.
+        - Final joint in the chain is the chest joint.
+        - Controls for the character pelvis/COG and spine.
     - Purpose:
+        - Builds the pelvis/COG joint of a character and spine in order to rig a humanoid torso.
 
 - `head/neck`
     - Guide Structure:
@@ -64,46 +66,78 @@ Refer to the design guide in .cursor/plans/RigBox_Design_Chart.pdf for a visual 
      - Single guide for the head, parented to the final guide in the neck hierarchy.
      - May be a child of another module, many **not** be a parent of another module.
     - Generates:
+        - 3 joints for the neck, single joint for the head.
+        - Controls for the character neck and head.
     - Purpose:
+        - Builds a neck and head rig for a humanoid character. 
+        - Intended to be parented to the end of a spine module.
 
 - `shoulder`
     - Guide Structure:
         - Single guide.
         - May be a parent or child of another module.
     - Generates:
+        - Single joint and control.
     - Purpose:
+        - Builds the shoulder/clavicle rig of a humanoid character.
+        - Intended to be parented to the chest of a spine module.
 
 - `arm`
     - Guide Structure:
         - 3 guides in a chain hierarchy, represents upper arm, lower arm, and wrist.
         - May be a parent or child of another module.
     - Generates:
+        - 3 joints for each segment of the arm (upper, lower, wrist).
+        - IK and FK controls with a pole vector and a switch attribute.
     - Purpose:
+        - Builds a standard arm rig with switchable FK and IK controls.
+        - Intended to be parented to a clavicle module.
 
-- `hand`
+- `finger`
     - Guide Structure:
-        - Array of guides for a hand base, and each finger metacarpal and phalange in the hand.
+        - Chain of guides for a finger metacarpal and each phalange of a finger.
+        - Length of chain is N where N[0] is always the metacarpal.
         - May be a child of another module, many **not** be a parent of another module. 
     - Generates:
+        - A joint for each metacarpal and phalange of the hand.
+        - FK controls for each metacarpal and phalange of the hand.
+        - Curl attribute for the phalanges.
     - Purpose:
+        - Builds a finger rig with FK controls and an attribute to curl the finger in/out.
+        - Intended to be parented to the wrist of an arm module.
 
 - `leg`
     - Guide Structure:
         - 3 guides in a chain hierarchy, represents upper leg, lower leg, and ankle.
         - May be a parent or child of another module. 
     - Generates:
+        - 3 joints for each segment of the arm (upper, lower, ankle).
+        - IK and FK controls with a pole vector and a switch attribute.
     - Purpose:
+        - Builds a standard leg rig with switchable FK and IK controls.
+        - Intended to be parented to the pelvis/cog of a spine module.
 
 - `foot`
     - Guide Structure:
-        - 3 guides in a chain hierarchy, represents ankle, ball, and toe.    
+        - 3 guides in a chain hierarchy, represents ankle, ball, and toe.
+        - 4 additional guides to define the foot roll L/R, toe roll, and heel roll.
     - Generates:
+        - 3 joints for the foot base, ball, and toe.
+        - A reverse foot joint system for rolls.
+        - FK controls for the foot and roll joints.
     - Purpose:
+        - Builds a humanoid forward/reverse foot rig.
+        - Intended to be parented to a leg module.
 
 - `metahuman`
-    - Guide Structure:
-    - Generates:
-    - Purpose:
+    - Pending, disregard this module for now.
+
+- `camera`
+    - Pending, disregard this module for now.
+
+- `hand`
+    - Deprecated, disregard this module.
+
 
 ## Agent behavior
 
