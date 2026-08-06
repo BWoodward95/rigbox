@@ -14,10 +14,50 @@ Refer to the design guide in .cursor/plans/RigBox_Design_Chart.pdf for a visual 
 - `guides/` — pre-rig guide logic
 - `metadata/` — metadata tagging logic
 - `modules/` — modular joint/control systems
+- `curves/` — curve library data
 - `ui/` — graphical user interface elements designed with PySide6
+
+## Metadata Goals
+`module` - **String**:  Defines the class of module that a given node belongs to. (e.g. root, arm, leg)
+
+`subModule` - **String**: Defines which component of the module that a given node belongs to. (e.g. upper_arm, spine_01, index_metacarpal)
+
+`side` - **Enum**: Defines the orientation of a node relative to the character. (e.g. left, right, center, none) Nodes with otherwise matching metadata but opposite side (left/right) may be considered mirrored elements.
+
+`componentType` - **String**: Defines the node type. (e.g. guide, joint, control, effector)
+
+`deform` - **Boolean**: Joint-only tag, defines whether a joint should be used for skinning.
+
+`kinematics` - **Enum**: Defines whether a joint, control, or effector is part of an IK or FK system. (e.g. IK, FK, IKFK, none)
+
 
 ## Rig Module Goals
 All guides and modules should extend logic from `guides/base/` and `modules/base/` respectively.
+
+### Module Pipeline:
+1. Guide Step:
+    1. Guide templates are selected from the template ui. Guides contain metadata attributes that instruct Rigbox on which module scripts to call with keyword modifiers for side (left/right/center).
+    3. Guides are nested under a `guides_GRP` node.
+    2. User placement of each guide within a template instructs relevant module scripts on where to place joints and controls on build.
+
+2. Joints Step:
+    1. Build orchestrator queries guides and guide metadata in scene and calls the appropriate module scripts as mapped out in [`templates.json`]('guides/templates.json')
+    2. Module scripts build joints with names, metadata, and hierarchy as defined by the given module script.
+    3. Joints are nested under a `joints_GRP` node.
+    4. Joint modules match the scene hierarchy of their respective guide modules.
+    5. Joints intended for skinning are defined with a metadata tag, and are nested under a `deform_GRP` node.
+    6. All deform joints are collected inside a `deform_skeleton` selection set.
+
+3. Controls Step:
+    1. Build orchestrator queries guides and guide metadata in scene and calls the appropriate module scripts as mapped out in [`templates.json`]('guides/templates.json')
+    2. Module scripts build controls and effectors with names, metadata, hierarchy and **constraints** as defined by the given module script.
+    3. Control modules match the scene hierarchy of their respective guide modules.
+    4. All controls are collected inside a `controls` selection set.
+
+4. Skinning Step:
+    1. With one or more meshes selected, joints with the `deform` metadata tag set to `true` node are skinned to the mesh.
+
+### Module Template Structure    
 
 - `fk`
     - Guide Structure:
@@ -138,6 +178,11 @@ All guides and modules should extend logic from `guides/base/` and `modules/base
 - `hand`
     - Deprecated, disregard this module.
 
+
+## Control Library Goals
+Control Curve Library with points stored in a [`curve_library.json`](curves/curve_library.json) file.
+
+Includes a tool that allows selected curves in a scene to be written to [`curve_library.json`](curves/curve_library.json)
 
 ## Agent behavior
 
