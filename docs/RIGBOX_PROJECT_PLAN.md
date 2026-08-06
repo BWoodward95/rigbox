@@ -353,7 +353,7 @@ Resolve these before the phase that depends on them.
 
 | Question | Blocks | Notes |
 |----------|--------|-------|
-| Is `deform_GRP` a child of `joints_GRP` holding only deform joints, with helper and IK joints elsewhere under `joints_GRP`? Or a sibling group? | Phase 2 | The rules require both `joints_GRP` and `deform_GRP` but do not state their relationship |
+| ~~Where does `deform_GRP` sit relative to `joints_GRP`?~~ **Resolved 2026-08-06** | — | Sibling at scene root. Game export is a requirement, so the deform skeleton must be one contiguous joint chain with only its root under `deform_GRP`, and driver joints must stay out of it under `joints_GRP`. The rules were revised accordingly; see [`METADATA_SCHEMA.md`](METADATA_SCHEMA.md) section 5 |
 | Should `side` be encoded in guide names, for example `L_upperArm_guide`, or derived from metadata at build time? | Phase 2 | Affects the naming rule and the mirroring utility |
 | Should the guide locator shape be replaced with a custom drawn shape for readability? | Phase 6 | Cosmetic; mGear and Hive both use custom guide shapes |
 

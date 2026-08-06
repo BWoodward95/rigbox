@@ -76,13 +76,18 @@ Each is owned by a phase. Do not fix them ad hoc.
 
 ---
 
+## Resolved
+
+**2026-08-06 — deform skeleton hierarchy.** Game export is a project requirement. `deform_GRP` is a sibling of `joints_GRP` at the scene root and holds a single contiguous deform skeleton; only the skeleton root joint is a direct child of the group. Driver joints (IK, FK, reverse foot, twist) stay under `joints_GRP` and reach the skeleton through constraints. The Joints Step in [`.cursor/rules/rigbox-project.mdc`](.cursor/rules/rigbox-project.mdc) was revised to state this; full reasoning is in [`docs/METADATA_SCHEMA.md`](docs/METADATA_SCHEMA.md) section 5.
+
+---
+
 ## Open design questions
 
 Answer before the owning phase begins. Detail in [`RIGBOX_PROJECT_PLAN.md`](docs/RIGBOX_PROJECT_PLAN.md) section 5.
 
 | Question | Blocks |
 |----------|--------|
-| Is `deform_GRP` a child of `joints_GRP` or a sibling? | Phase 2 |
 | Does `side` appear in guide names, or only in metadata? | Phase 2 |
 | Should guides use a custom drawn shape instead of a plain locator? | Phase 6 |
 

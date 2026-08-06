@@ -111,7 +111,7 @@ This is the pairing key used by `find_joint_for_guide` and its siblings. When a 
 
 The Skin step uses this as its sole source of truth. In a limb, only the bind chain is tagged true; the IK and FK chains that drive it are false. Reverse-foot and other helper joints are false.
 
-Deform joints are additionally nested under `deform_GRP` and collected in the `deform_skeleton` selection set.
+This flag also decides where a joint lives: `deform = true` joints form the contiguous deform skeleton under `deform_GRP` and join the `deform_skeleton` selection set, while `deform = false` joints go under `joints_GRP`. See section 5.
 
 ### `kinematics` — enum
 
@@ -183,16 +183,40 @@ self._control_name('pv')    # fk_pv_ctrl
 
 ### Groups
 
+All four groups are **siblings at the scene root**. None of them is ever moved, rotated, or scaled.
+
 | Group | Holds | Parenting |
 |-------|-------|-----------|
 | `guides_GRP` | All guides | Root guides directly under the group; child guides under their parent guide |
-| `joints_GRP` | All joints | Root joints directly under the group; child joints under the parent guide's joint |
-| `deform_GRP` | Deform joints | See open question below |
+| `deform_GRP` | The deform skeleton | **Only the single skeleton root joint** is a direct child; every other deform joint parents to its parent deform joint |
+| `joints_GRP` | Driver joints — IK chains, FK chains, reverse foot pivots, twist and helper joints | Root driver joints directly under the group; child driver joints under their parent driver joint |
 | `rig_GRP` | All controls and effectors | Root controls directly under the group; child controls under the parent guide's control |
 
 Joint and control hierarchies **mirror** the guide hierarchy. Reparenting a guide and rebuilding reparents its joint and control to match.
 
-> **Open question:** the rules require both `joints_GRP` and `deform_GRP` but do not state their relationship. The working assumption is that `deform_GRP` is a child of `joints_GRP` containing the deform skeleton, while helper, IK, and FK joints sit elsewhere under `joints_GRP`. Confirm before Phase 2.
+### Why `deform_GRP` is separate and flat at the top
+
+Game export is a project requirement, and the deform skeleton is what gets exported. Two rules follow from that, and both are easy to violate by accident:
+
+**One contiguous joint chain.** "Deform joints are nested under `deform_GRP`" does **not** mean every deform joint is a direct child of the group. Parenting them all directly to the group would flatten the skeleton into a list of unrelated joints, destroying both the bind hierarchy and the export. Only the skeleton **root** is a child of `deform_GRP`; the rest keep their joint-to-joint parenting.
+
+```mermaid
+flowchart TD
+    dg[deform_GRP] --> rj[root_jnt]
+    rj --> cog[cog_jnt]
+    cog --> sp[spine_01_jnt]
+    sp --> ch[chest_jnt]
+    jg[joints_GRP] --> ik[L_arm_ik_01_jnt]
+    jg --> fk[L_arm_fk_01_jnt]
+    ik -.->|constraint| ch
+    fk -.->|constraint| ch
+```
+
+**No foreign nodes inside the hierarchy.** Driver joints live under `joints_GRP` and reach the deform skeleton through constraints. A driver joint parented inside the deform hierarchy exports as an extra bone; a group transform between two deform joints exports as a junk node and breaks the bone chain.
+
+`deform_GRP` is a **sibling** of `joints_GRP` rather than a child so the exported skeleton sits one level below the scene root with nothing above it but an identity transform. Exporting is then "select the skeleton root and the mesh, export selected."
+
+> **Constraint nodes:** Maya parents a `parentConstraint` node under the joint it constrains, so constraint nodes will appear inside the deform hierarchy. FBX export handles these once animation is baked. If they become a problem, connect `offsetParentMatrix` instead of using constraint nodes, which leaves the skeleton completely clean. Decide during Phase 9, when limbs introduce the first driver chains.
 
 ### Selection sets
 

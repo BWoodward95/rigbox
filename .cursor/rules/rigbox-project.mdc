@@ -45,10 +45,19 @@ All guides and modules should extend logic from `guides/base/` and `modules/base
 2. Joints Step:
     1. Build orchestrator queries guides and guide metadata in scene and calls the appropriate module scripts as mapped out in [`templates.json`]('guides/templates.json')
     2. Module scripts build joints with names, metadata, and hierarchy as defined by the given module script.
-    3. Joints are nested under a `joints_GRP` node.
-    4. Joint modules match the scene hierarchy of their respective guide modules.
-    5. Joints intended for skinning are defined with a metadata tag, and are nested under a `deform_GRP` node.
-    6. All deform joints are collected inside a `deform_skeleton` selection set.
+    3. Joint hierarchies match the scene hierarchy of their respective guide modules.
+    4. Joints are split into two categories by the `deform` metadata tag:
+        - **Deform joints** (`deform = true`) are skinned to geometry and exported to game engines.
+        - **Driver joints** (`deform = false`) exist only to drive deform joints — IK chains, FK chains, reverse foot pivots, twist and helper joints.
+    5. The deform joints form a single contiguous **deform skeleton**:
+        - Exactly one root joint, parented directly to `deform_GRP`.
+        - Every other deform joint parents to its parent deform joint, never to a group.
+        - No group transforms, driver joints, effectors, or controls may sit anywhere inside this hierarchy.
+    6. Driver joints are nested under `joints_GRP` and drive the deform skeleton through constraints. They never enter the deform hierarchy.
+    7. `deform_GRP` and `joints_GRP` are siblings at the scene root. Both must keep identity transforms — never move, rotate, or scale them.
+    8. All deform joints are collected inside a `deform_skeleton` selection set.
+
+    **Game export is a requirement.** The deform skeleton is exported to game engines, so anything that pollutes that hierarchy — an interleaved group, a stray driver joint, a transformed parent — becomes a defective bone in the exported skeleton. When a hierarchy decision trades rig convenience against a clean deform skeleton, the clean skeleton wins.
 
 3. Controls Step:
     1. Build orchestrator queries guides and guide metadata in scene and calls the appropriate module scripts as mapped out in [`templates.json`]('guides/templates.json')
