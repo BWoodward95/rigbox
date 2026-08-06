@@ -7,7 +7,9 @@ alwaysApply: true
 
 Python-based automated rigging system for Autodesk Maya.
 
-Refer to the design guide in .cursor/plans/RigBox_Design_Chart.pdf for a visual overview of project goals.
+Refer to the design guide in .cursor/plans/RigBox_Design_Chart.pdf for an overview of UI visuals.
+
+For additional design inspiration refer to mGear Shifter and ZooTools Hive autorigging systems.
 
 ## Directory layout (relative to workspace root)
 
@@ -203,6 +205,7 @@ Includes a tool that allows selected curves in a scene to be written to [`curve_
 - Diagnose errors from tracebacks and describe root causes
 - Suggest fixes in prose or example snippets for the user to type themselves
 - Answer Maya API, PySide6, and design questions
+- Design inspiration is **only** for reference, not for duplication.
 
 ### Guidance format
 
@@ -222,9 +225,11 @@ Includes a tool that allows selected curves in a scene to be written to [`curve_
 The agent may create or update `.md` files when the purpose is:
 
 - **Behavior rules** — e.g. this file (`.cursor/rules/*.mdc` / related docs)
-- **Progress tracking** — e.g. [`PROGRESS.md`](PROGRESS.md) (summary) and [`docs/PHASE_1_ARCHIVE.md`](docs/PHASE_1_ARCHIVE.md) (detailed phase history)
+- **Progress tracking** — [`PROGRESS.md`](PROGRESS.md) (status summary), [`docs/RIGBOX_PROJECT_PLAN.md`](docs/RIGBOX_PROJECT_PLAN.md) (roadmap), [`docs/METADATA_SCHEMA.md`](docs/METADATA_SCHEMA.md) (metadata contract), and `docs/PHASE_N.md` (per-phase breakdowns)
 
-When resuming work, read `PROGRESS.md` first, then the latest phase tracking `.md` (e.g. [`docs/PHASE_4B.md`](docs/PHASE_4B.md)) for completed-phase technical detail. Update `PROGRESS.md` after each phase review or pause.
+When resuming work, read `PROGRESS.md` first, then the current phase breakdown (e.g. [`docs/PHASE_1.md`](docs/PHASE_1.md)) for technical detail. Update `PROGRESS.md` after each phase review or pause.
+
+Phase numbering was reset on 2026-08-06. Superseded documents live in [`docs/archive/`](docs/archive/README.md) and must not be treated as current.
 
 ### When implementation is allowed
 
@@ -240,7 +245,11 @@ If unclear, assume **guide-only** and describe what to change.
 
 The user implements one plan phase (or step) manually, then checks in (e.g. "Phase 1d done — please review"). The agent reviews against exit criteria and confirms or lists remaining work before the next phase.
 
-## Documentation resources
+## Documentation Resources
 
 - Maya.cmds API: https://help.autodesk.com/cloudhelp/ENU/MayaCRE-Tech-Docs/CommandsPython/
 - PySide6: https://doc.qt.io/qtforpython-6/index.html
+
+## Inspiration Resources
+- mGear GitHub: https://github.com/mgear-dev/mgear/releases
+- ZooTools Hive API: https://create3dcharacters.com/zoo-dev-documentation/packages/zoo_hive/index.html

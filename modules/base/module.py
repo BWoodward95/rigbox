@@ -9,8 +9,11 @@ import maya.cmds as cmds
 # RigBox Imports
 from metadata.tag import tag
 
-
+GUIDE_GROUP = 'guides_GRP'
+JOINTS_GROUP = 'joints_GRP'
 RIG_GROUP = 'rig_GRP'
+
+GUIDE_SUFFIX = '_guide'
 JOINT_SUFFIX = '_jnt'
 CONTROL_SUFFIX = '_ctrl'
 
@@ -51,10 +54,15 @@ class module():
         return joint
     
     def _joint_name(self, part=''):
-        base = self.metadata['module']
+        base = self.guide.replace(GUIDE_SUFFIX, '')
         if part:
             return f'{base}_{part}{JOINT_SUFFIX}'
         return f'{base}{JOINT_SUFFIX}'
+    
+    def _joints_group(self):
+        if not cmds.objExists(JOINTS_GROUP):
+            cmds.group(empty=True, name=JOINTS_GROUP)
+        return JOINTS_GROUP
 
     def _create_control(self, name, xform=None, parent=None):
         control = cmds.circle(constructionHistory=False)[0]
@@ -73,7 +81,7 @@ class module():
         return control
         
     def _control_name(self, part=''):
-        base = self.metadata['module']
+        base = self.guide.replace(GUIDE_SUFFIX, '')
         if part:
             return f'{base}_{part}{CONTROL_SUFFIX}'
         return f'{base}{CONTROL_SUFFIX}'

@@ -1,114 +1,213 @@
 # RigBox Metadata Schema
 
-Canonical reference for RigBox scene metadata — attributes on guides and built rig nodes, naming conventions, and the query API.
+The contract for RigBox scene metadata: which attributes live on which nodes, their Maya types and legal values, naming conventions, scene organization, and the query API.
 
-**Related docs:** [`PHASE_1_ARCHIVE.md`](PHASE_1_ARCHIVE.md) · [`PHASE_2B.md`](PHASE_2B.md) · [`PHASE_2C.md`](PHASE_2C.md)
+**Status:** Target contract as of the 2026-08-06 plan reset. Sections marked **planned** are not yet in code — see [`PROGRESS.md`](../PROGRESS.md) for what is actually implemented.
+
+**Related docs:** [`RIGBOX_PROJECT_PLAN.md`](RIGBOX_PROJECT_PLAN.md) · [`archive/METADATA_SCHEMA.md`](archive/METADATA_SCHEMA.md) (superseded)
 
 ---
 
-## Overview
+## 1. Principles
 
-RigBox stores rig metadata as **locked string attributes** on Maya transforms. Attributes are written via `metadata.tag.tag.create()` and read via `metadata.query.query`.
+Metadata is the interface between pipeline steps. A build step never guesses from node names or types; it queries attributes.
 
 ```mermaid
 flowchart LR
-    TJ[templates.json] --> GS[Guide spawn]
-    GS --> GA[Guide attrs]
-    GA --> BJ[Build Joints / Controls]
-    BJ --> BA[Built node attrs]
-    BA -->|guideNode| GA
+    TJ[templates.json] -->|spawn args| GS[Guide spawn]
+    GS --> GA[Guide attributes]
+    GA --> BJ[Build Joints]
+    BJ --> JA[Joint attributes]
+    JA --> BC[Build Controls]
+    BC --> CA[Control and effector attributes]
+    JA -->|deform flag| SK[Skin]
 ```
-
-| Node kind | `componentType` | Tagged by |
-|-----------|-----------------|-----------|
-| Guide | `guide` | `guides/base/guide.py` |
-| Joint | `joint` | `modules/base/module.py` → `_create_joint()` |
-| Control | `control` | `modules/base/module.py` → `_create_control()` |
-| Constraint | `constraint` | *planned — Phase 5+* |
-
----
-
-## Tagging rules
-
-All RigBox metadata follows these rules regardless of node type:
 
 | Rule | Detail |
 |------|--------|
-| Target node | Tag the **transform**, never the shape |
-| Attribute type | Locked `string` via `cmds.addAttr(..., dataType="string")` |
-| Empty values | `tag.create` stores `None` as `""` |
-| Locking | All metadata attrs are locked (`locked=True`) by default |
-| Writer | `metadata.tag.tag.create(target, longname, data, locked=True)` |
+| Target | Tag the **transform**, never the shape |
+| Locking | Metadata attributes are locked after being written |
+| Writer | `metadata.tag.tag.create()` |
+| Reader | `metadata.query.query` |
+| Empty values | Empty string for unset string attributes; enums always resolve to a real label |
+| Renaming | Node names may change at any time. `guideNode` is the durable link between a built node and its guide |
 
 ---
 
-## Guide nodes
+## 2. Attributes
 
-Applied when a guide is spawned in `guides/base/guide.py`.
+Six attributes make up the schema. Not every attribute applies to every node type.
 
-| Attribute | Type | Example | Required | Purpose |
-|-----------|------|---------|----------|---------|
-| `componentType` | string | `guide` | yes | Identifies RigBox guide transforms |
-| `module` | string | `fk` | yes | Maps to `templates.json` rig entry |
-| `subModule` | string | `""` | yes | Sub-type within a module (e.g. spine segment, limb part) |
-| `side` | string | `""` | yes | Laterality: `L`, `R`, or empty for center |
+| Attribute | Maya type | Applies to | Purpose |
+|-----------|-----------|------------|---------|
+| `componentType` | string | all | The node's role in the rig |
+| `module` | string | all | Which module class the node belongs to |
+| `subModule` | string | all | Which component within the module |
+| `side` | enum | all | Orientation relative to the character |
+| `guideNode` | string | joints, controls, effectors | Name of the source guide transform |
+| `deform` | boolean | joints only | Whether the joint is used for skinning |
+| `kinematics` | enum | joints, controls, effectors | Whether the node belongs to an IK or FK system |
 
-**Naming:** `{name}_guide` — e.g. template arg `name: "fk"` → transform `fk_guide`.
+### `componentType` — string
 
-**Parenting:** Child guides parent under a selected parent guide via the `parent` kwarg passed from the UI (`ui/widgets/guidetemplateList.py`). Parenting only occurs when `query.is_guide(parent)` is true.
+The node's role. Read this before trusting any other attribute.
+
+| Value | Meaning | Created by |
+|-------|---------|------------|
+| `guide` | Placement locator | [`guides/base/guide.py`](../guides/base/guide.py) |
+| `joint` | Skeleton joint | `module._create_joint()` |
+| `control` | Animator-facing control curve | `module._create_control()` |
+| `effector` | Non-animated rig node such as an IK handle or pole vector | **planned** — Phase 8 |
+
+### `module` — string
+
+The class of module the node belongs to. Matches the `module` argument in [`guides/templates.json`](../guides/templates.json), which is how the build orchestrator resolves the module script to call.
+
+Values: `fk`, `fkchain`, `root`, `spine`, `headneck`, `shoulder`, `arm`, `finger`, `leg`, `foot`.
+
+### `subModule` — string
+
+Which component within the module a node represents. This is what lets a multi-guide module tell its own guides apart.
+
+| Module | Example `subModule` values |
+|--------|----------------------------|
+| `fk` | empty |
+| `fkchain` | `chain_01`, `chain_02`, … |
+| `root` | empty |
+| `spine` | `cog`, `spine_01`, `spine_02`, `chest` |
+| `headneck` | `neck_01`, `neck_02`, `neck_03`, `head` |
+| `shoulder` | empty |
+| `arm` | `upper_arm`, `lower_arm`, `wrist` |
+| `finger` | `index_metacarpal`, `index_01`, `index_02`, `index_03` |
+| `leg` | `upper_leg`, `lower_leg`, `ankle` |
+| `foot` | `ankle`, `ball`, `toe`, `roll_inner`, `roll_outer`, `roll_toe`, `roll_heel` |
+
+Use lowercase with underscores. Segment numbering is zero-padded to two digits so that string sorting matches build order.
+
+### `side` — enum
+
+Orientation relative to the character.
+
+| Index | Label | Meaning |
+|-------|-------|---------|
+| 0 | `none` | Side is not meaningful for this node |
+| 1 | `center` | On the character's midline |
+| 2 | `left` | Character's left |
+| 3 | `right` | Character's right |
+
+Two nodes whose metadata matches except for `left` versus `right` are considered **mirrored elements**. The Phase 10 mirroring utility relies on this.
+
+Enum rather than string so Maya's channel box shows a dropdown and typos are impossible.
+
+### `guideNode` — string
+
+The name of the guide transform a built node came from. Written on joints, controls, and effectors; never on guides.
+
+This is the pairing key used by `find_joint_for_guide` and its siblings. When a guide is renamed, every `guideNode` referencing it must be updated — [`ui/widgets/elementsList.py`](../ui/widgets/elementsList.py) already does this on rename.
+
+### `deform` — boolean
+
+**Joint only.** True when the joint should be a skin influence.
+
+The Skin step uses this as its sole source of truth. In a limb, only the bind chain is tagged true; the IK and FK chains that drive it are false. Reverse-foot and other helper joints are false.
+
+Deform joints are additionally nested under `deform_GRP` and collected in the `deform_skeleton` selection set.
+
+### `kinematics` — enum
+
+Whether a joint, control, or effector participates in an IK or FK system.
+
+| Index | Label | Meaning |
+|-------|-------|---------|
+| 0 | `none` | Not part of a kinematic chain |
+| 1 | `FK` | Forward kinematics |
+| 2 | `IK` | Inverse kinematics |
+| 3 | `IKFK` | Blended or switchable |
+
+A limb bind joint that is driven by a blend of both chains is `IKFK`; the two driver chains are `FK` and `IK` respectively.
 
 ---
 
-## Built nodes
+## 3. Attributes by node type
 
-Applied by `modules/base/module.py` → `_tag_node()` whenever `_create_joint()` or `_create_control()` runs.
+| Attribute | Guide | Joint | Control | Effector |
+|-----------|-------|-------|---------|----------|
+| `componentType` | yes | yes | yes | yes |
+| `module` | yes | yes | yes | yes |
+| `subModule` | yes | yes | yes | yes |
+| `side` | yes | yes | yes | yes |
+| `guideNode` | no | yes | yes | yes |
+| `deform` | no | yes | no | no |
+| `kinematics` | no | yes | yes | yes |
 
-| Attribute | Type | Example | Required | Purpose |
-|-----------|------|---------|----------|---------|
-| `componentType` | string | `joint` / `control` | yes | Identifies rig output type |
-| `guideNode` | string | `fk_guide` | yes | Source guide transform name |
-| `module` | string | `fk` | yes | Copied from the source guide |
-
-### `componentType` values
-
-| Value | Status | Created by |
-|-------|--------|------------|
-| `guide` | implemented | `guides/base/guide.py` |
-| `joint` | implemented | `module._create_joint()` |
-| `control` | implemented (helper exists; used in Phase 3) | `module._create_control()` |
-| `constraint` | planned | future limb/IK modules |
-
-### Known gap (planned)
-
-Guides carry `subModule` and `side`; built joints and controls do **not** yet. Phase 5 limb modules will likely add these attrs to built nodes for scene filtering (e.g. `find_joints(module='arm', side='L')`).
+Guides do not carry `kinematics` because a single guide can drive both IK and FK output; the module decides.
 
 ---
 
-## Naming conventions
+## 4. Naming conventions
 
-Defined as class constants on `modules/base/module.py`:
+Constants live in [`modules/base/module.py`](../modules/base/module.py).
 
-| Constant | Value | Pattern | Example |
-|----------|-------|---------|---------|
-| — | — | Guide | `fk_guide` |
-| `JOINT_SUFFIX` | `_jnt` | `{module}_jnt` or `{module}_{part}_jnt` | `fk_jnt`, `arm_upper_jnt` |
-| `CONTROL_SUFFIX` | `_ctrl` | `{module}_ctrl` or `{module}_{part}_ctrl` | `fk_ctrl`, `arm_upper_ctrl` |
-| `RIG_GROUP` | `rig_GRP` | Top-level control group | `rig_GRP` |
+| Constant | Value |
+|----------|-------|
+| `GUIDE_SUFFIX` | `_guide` |
+| `JOINT_SUFFIX` | `_jnt` |
+| `CONTROL_SUFFIX` | `_ctrl` |
+| `EFFECTOR_SUFFIX` | `_eff` |
 
-**Preferred API for subclasses:**
+### Rule
+
+Guides are named `{name}_guide`. Built nodes take the guide's name, **strip `_guide`**, and append their own suffix. Built node names never contain the word `guide`.
+
+| Guide transform | Joint | Control |
+|-----------------|-------|---------|
+| `fk_guide` | `fk_jnt` | `fk_ctrl` |
+| `fk_guide1` | `fk1_jnt` | `fk1_ctrl` |
+| `L_upperArm_guide` | `L_upperArm_jnt` | `L_upperArm_ctrl` |
+
+**Why strip rather than derive from the `module` attribute:** every guide transform name is unique in Maya, so stripping guarantees a unique built-node name per guide. Deriving from `module` gives every FK guide the same base name, which is the collision that made guide-to-node pairing unreliable before the reset.
+
+### Multi-part names
+
+Modules that create several nodes from one guide pass a part string:
 
 ```python
-self._create_joint(self._joint_name())           # → fk_jnt
-self._create_joint(self._joint_name('upper'))    # → fk_upper_jnt
-# Phase 3:
-self._create_control(self._control_name())       # → fk_ctrl  (planned helper)
+self._joint_name()          # fk_jnt
+self._joint_name('ik')      # fk_ik_jnt
+self._control_name('pv')    # fk_pv_ctrl
 ```
 
 ---
 
-## Query API
+## 5. Scene organization
 
-Implemented in `metadata/query.py`. Import as:
+### Groups
+
+| Group | Holds | Parenting |
+|-------|-------|-----------|
+| `guides_GRP` | All guides | Root guides directly under the group; child guides under their parent guide |
+| `joints_GRP` | All joints | Root joints directly under the group; child joints under the parent guide's joint |
+| `deform_GRP` | Deform joints | See open question below |
+| `rig_GRP` | All controls and effectors | Root controls directly under the group; child controls under the parent guide's control |
+
+Joint and control hierarchies **mirror** the guide hierarchy. Reparenting a guide and rebuilding reparents its joint and control to match.
+
+> **Open question:** the rules require both `joints_GRP` and `deform_GRP` but do not state their relationship. The working assumption is that `deform_GRP` is a child of `joints_GRP` containing the deform skeleton, while helper, IK, and FK joints sit elsewhere under `joints_GRP`. Confirm before Phase 2.
+
+### Selection sets
+
+| Set | Members |
+|-----|---------|
+| `deform_skeleton` | Every joint with `deform = true` |
+| `controls` | Every node with `componentType = control` |
+
+Sets are conveniences for animators and downstream tools. Attributes remain the source of truth; the sets are rebuilt from attributes, never the reverse.
+
+---
+
+## 6. Query API
+
+Implemented in [`metadata/query.py`](../metadata/query.py).
 
 ```python
 from metadata.query import query
@@ -116,115 +215,79 @@ from metadata.query import query
 
 ### Attribute constants
 
-| Constant | Value | Used on |
-|----------|-------|---------|
-| `ATTR_COMPONENT_TYPE` | `componentType` | guides, built nodes |
-| `ATTR_MODULE` | `module` | guides, built nodes |
-| `ATTR_SUBMODULE` | `subModule` | guides only |
-| `ATTR_SIDE` | `side` | guides only |
-| `ATTR_GUIDE_NODE` | `guideNode` | built nodes only |
+| Constant | Value |
+|----------|-------|
+| `ATTR_COMPONENT_TYPE` | `componentType` |
+| `ATTR_MODULE` | `module` |
+| `ATTR_SUBMODULE` | `subModule` |
+| `ATTR_SIDE` | `side` |
+| `ATTR_GUIDE_NODE` | `guideNode` |
+| `ATTR_DEFORM` | `deform` — **planned** |
+| `ATTR_KINEMATICS` | `kinematics` — **planned** |
 
-### Type checks
+### Functions
 
-| Function | Returns | Description |
-|----------|---------|-------------|
-| `is_guide(node)` | `bool` | `componentType == 'guide'` |
-| `is_joint(node)` | `bool` | `componentType == 'joint'` |
-| `is_control(node)` | `bool` | `componentType == 'control'` |
+| Function | Returns | Status |
+|----------|---------|--------|
+| `is_guide(node)` | bool | implemented |
+| `is_joint(node)` | bool | implemented |
+| `is_control(node)` | bool | implemented |
+| `is_effector(node)` | bool | planned — Phase 1 |
+| `find_guides(module=None)` | list | implemented |
+| `find_joints(module=None)` | list | implemented |
+| `find_controls(module=None)` | list | implemented |
+| `find_effectors(module=None)` | list | planned — Phase 1 |
+| `find_deform_joints()` | list | planned — Phase 1 |
+| `read_guide_data(node)` | dict | implemented |
+| `find_joint_for_guide(guide)` | str or None | implemented |
+| `find_control_for_guide(guide)` | str or None | implemented |
+| `find_parent_guide(guide)` | str or None | planned — Phase 2 |
+| `sort_guides_hierarchy(guides)` | list | planned — Phase 2 |
 
-### Scene queries
-
-| Function | Returns | Description |
-|----------|---------|-------------|
-| `find_guides(module=None)` | `list[str]` | All guide transforms; optional `module` filter |
-| `find_joints(module=None)` | `list[str]` | All tagged joints; optional `module` filter |
-| `find_controls(module=None)` | `list[str]` | All tagged controls; optional `module` filter |
-
-### Readers
-
-| Function | Returns | Description |
-|----------|---------|-------------|
-| `read_guide_data(node)` | `dict` | Full guide metadata; raises `ValueError` if not a guide |
-
-**`read_guide_data` return shape:**
+### `read_guide_data` shape
 
 ```python
 {
-    'node': str,           # guide transform name
-    'module': str,         # e.g. 'fk'
-    'subModule': str,      # e.g. '' or 'upper'
-    'side': str,           # e.g. '', 'L', 'R'
+    'node': 'L_upperArm_guide',
+    'module': 'arm',
+    'subModule': 'upper_arm',
+    'side': 'left',
     'xform': {
-        'translation': [float, float, float],  # world space
-        'rotation': [float, float, float],     # world space (degrees)
-    }
+        'translation': [12.0, 140.0, 0.0],
+        'rotation': [0.0, 0.0, 0.0],
+    },
 }
 ```
 
-### Planned
-
-| Function | Returns | Description |
-|----------|---------|-------------|
-| `read_node_data(node)` | `dict` | Generic reader for any tagged rig node |
-
 ---
 
-## `templates.json` linkage
+## 7. Reading typed attributes
 
-Each template entry in `guides/templates.json` defines two tool calls:
-
-```json
-"tool call": {
-    "guide": { "module": "...", "class": "...", "args": { "name": "...", "module": "..." } },
-    "rig":   { "module": "...", "class": "...", "args": { "name": "...", "module": "..." } }
-}
-```
-
-| Pipeline step | Uses | Match key |
-|---------------|------|-----------|
-| Guide spawn (UI double-click) | `tool call.guide` | — |
-| Build Joints | `tool call.rig` | `rig.args.module` == guide's `module` attr |
-| Build Controls *(Phase 3)* | `tool call.rig` | same |
-
-The guide's `module` attribute is the bridge between scene nodes and `templates.json` rig entries.
-
-**Working template:** `fk` — guide + module code complete through Phase 2b.
-
-**Placeholders:** `ik chain`, `Root`, `Spine` — template entries exist; guide/module code pending Phase 5.
-
----
-
-## Verification in Maya
-
-After spawning `fk_guide` and running **Build Joints**:
+`cmds.getAttr` returns an enum's **index**, not its label. Always resolve enums to labels before comparing, or compare against the index constants — never against a bare string that happens to look right.
 
 ```python
-import maya.cmds as cmds
-from metadata.query import query
+# Wrong: getAttr on an enum returns 2, never 'left'
+cmds.getAttr(f'{node}.side') == 'left'
 
-# Guide attrs
-query.is_guide('fk_guide')                        # True
-query.read_guide_data('fk_guide')['module']       # 'fk'
-cmds.getAttr('fk_guide.componentType')            # 'guide'
-
-# Built joint attrs
-cmds.getAttr('fk_jnt.componentType')              # 'joint'
-cmds.getAttr('fk_jnt.guideNode')                  # 'fk_guide'
-cmds.getAttr('fk_jnt.module')                     # 'fk'
-query.is_joint('fk_jnt')                            # True
-query.find_joints('fk')                           # ['fk_jnt']
+# Right: resolve through the enum labels
+query.read_enum(node, ATTR_SIDE) == SIDE_LEFT
 ```
 
-Walk through every attribute row in this document against the Attribute Editor to confirm the live scene matches the schema.
+Booleans return Python `True` / `False` and need no conversion.
 
 ---
 
-## Future
+## 8. Worked example
 
-| Item | Phase | Notes |
-|------|-------|-------|
-| `subModule` / `side` on built nodes | 5 | Limb and spine modules |
-| `constraint` `componentType` | 5+ | IK/FK constraints |
-| `find_controls()` | 3 | Build Controls pipeline |
-| `read_node_data(node)` | optional | Generic reader for any tagged rig node |
-| `rig_GRP` hierarchy rules | 3 | Controls parent under `rig_GRP` |
+A left arm's upper segment, after all four pipeline steps.
+
+| Node | `componentType` | `module` | `subModule` | `side` | `guideNode` | `deform` | `kinematics` |
+|------|-----------------|----------|-------------|--------|-------------|----------|--------------|
+| `L_upperArm_guide` | `guide` | `arm` | `upper_arm` | `left` | — | — | — |
+| `L_upperArm_jnt` | `joint` | `arm` | `upper_arm` | `left` | `L_upperArm_guide` | `true` | `IKFK` |
+| `L_upperArm_fk_jnt` | `joint` | `arm` | `upper_arm` | `left` | `L_upperArm_guide` | `false` | `FK` |
+| `L_upperArm_ik_jnt` | `joint` | `arm` | `upper_arm` | `left` | `L_upperArm_guide` | `false` | `IK` |
+| `L_upperArm_fk_ctrl` | `control` | `arm` | `upper_arm` | `left` | `L_upperArm_guide` | — | `FK` |
+| `L_arm_ik_eff` | `effector` | `arm` | `wrist` | `left` | `L_wrist_guide` | — | `IK` |
+
+Only `L_upperArm_jnt` is in `deform_skeleton`. Only `L_upperArm_fk_ctrl` is in `controls`.
