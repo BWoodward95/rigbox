@@ -26,7 +26,7 @@ flowchart LR
 | Rule | Detail |
 |------|--------|
 | Target | Tag the **transform**, never the shape |
-| Locking | Metadata attributes are locked after being written |
+| Locking | Metadata attributes are locked after being written, with one exception: `side` is left unlocked so a guide's side can be changed after spawn |
 | Writer | `metadata.tag.tag.create()` |
 | Reader | `metadata.query.query` |
 | Empty values | Empty string for unset string attributes; enums always resolve to a real label |

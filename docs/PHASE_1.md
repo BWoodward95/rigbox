@@ -4,9 +4,11 @@
 
 **Contract:** [`METADATA_SCHEMA.md`](METADATA_SCHEMA.md) sections 2 and 3 define what this phase must produce.
 
-**Why this is Phase 1:** Every later phase queries these attributes. `deform` gates skinning in Phase 5, `kinematics` gates IK/FK switching in Phase 8, and `side` drives mirroring in Phase 10. Adding attributes after ten modules exist would mean retagging all of them.
+**Why this is Phase 1:** Every later phase queries these attributes. `deform` gates skinning in Phase 6 and decides whether a joint joins the exported deform skeleton, `kinematics` gates IK/FK switching in Phase 9, and `side` drives naming and mirroring. Adding attributes after ten modules exist would mean retagging all of them.
 
 **Scope boundary:** this phase changes *what is written and read*. It does **not** change naming, grouping, hierarchy, or build idempotency — that is Phase 2. Joints will still collide by name when you finish Phase 1, and that is expected.
+
+**Note on existing work:** [`modules/base/module.py`](../modules/base/module.py) already carries the group constants (`GUIDE_GROUP`, `JOINTS_GROUP`, `RIG_GROUP`), `_joints_group()`, and guide-derived `_joint_name()` / `_control_name()`. That is Phase 2 groundwork you have already written. Leave it alone in Phase 1; step 1d only touches `_tag_node` and the two create helpers.
 
 ---
 
@@ -150,14 +152,27 @@ Mirror the existing `is_joint` / `find_joints` pattern:
 | `is_effector(node)` | `componentType == 'effector'` |
 | `find_effectors(module=None)` | Effector transforms, optionally filtered by module |
 | `find_deform_joints()` | Joints where `deform` is true |
+| `find_driver_joints()` | Joints where `deform` is false |
 
-`find_deform_joints` must tolerate joints that predate the attribute. Check `cmds.attributeQuery(ATTR_DEFORM, node=node, exists=True)` before reading, and treat a missing attribute as false. Phase 5 depends on this returning a clean influence list.
+`find_deform_joints` must tolerate joints that predate the attribute. Check `cmds.attributeQuery(ATTR_DEFORM, node=node, exists=True)` before reading, and treat a missing attribute as false. Phase 6 depends on this returning a clean influence list, and Phase 2 uses the deform/driver split to decide whether a joint belongs under `deform_GRP` or `joints_GRP`.
+
+### Fix the missing guard on `find_control_for_guide`
+
+`find_joint_for_guide` validates its argument, but its control twin does not:
+
+```python
+@staticmethod
+def find_control_for_guide(guide_node):
+    module = cmds.getAttr(f'{guide_node}.{ATTR_MODULE}')
+```
+
+Passing a non-guide raises a bare Maya attribute error instead of a clear `ValueError`. Add the same `is_guide` check the joint version has. Cheap now; confusing to debug once ten modules call it.
 
 ### Update `read_guide_data`
 
 It currently reads `side` with a plain `getAttr`, which will start returning an integer once 1c lands. Route it through `read_enum` so the returned dict still carries `'left'`.
 
-Consider a general `read_node_data(node)` that works for any tagged node, returning whichever of the six attributes are present. Modules in Phases 6 to 9 will want it; a guide-only reader is not enough once joints and controls carry `kinematics`.
+Consider a general `read_node_data(node)` that works for any tagged node, returning whichever of the six attributes are present. Modules in Phases 7 to 10 will want it; a guide-only reader is not enough once joints and controls carry `kinematics`.
 
 ### 1b exit criteria
 
@@ -166,6 +181,7 @@ Consider a general `read_node_data(node)` that works for any tagged node, return
 - [ ] `read_enum` returns labels, not indices
 - [ ] `is_effector` and `find_effectors` exist
 - [ ] `find_deform_joints` returns only `deform = true` joints and tolerates untagged joints
+- [ ] `find_control_for_guide` raises `ValueError` on a non-guide, matching its joint twin
 - [ ] `read_guide_data` returns `side` as a label
 
 ---
@@ -185,6 +201,19 @@ Default `self.side` to `'none'` rather than `None` when the template does not su
 
 Guides do **not** get `deform` or `kinematics`. A single guide can drive both IK and FK output, so the module decides at build time; storing it on the guide would be a lie.
 
+### Decision — `side` is unlocked (confirmed 2026-08-06)
+
+Every other metadata attribute is locked. `side` is the single exception: pass `locked=False` for it.
+
+```python
+tag.create(guide_transform, ATTR_SIDE, self.side,
+           attr_type='enum', enum_names=SIDE_ENUM, locked=False)
+```
+
+**Why:** Phase 2 bakes a name prefix from this value (`left` gives `L_upperArm_guide`). If the attribute were locked, flipping a guide from left to right would mean unlocking it, renaming the guide, and updating `guideNode` on every built node that references it — in practice you would delete and respawn. Leaving it writable costs nothing and leaves room for a "flip side" action in the Elements tree later.
+
+**Consequence for later phases:** an unlocked attribute can drift out of sync with the baked name prefix. A guide could read `side = right` while still being called `L_upperArm_guide`. Metadata stays the source of truth, so queries and mirroring are unaffected, but any future flip-side action must rename the guide and its built nodes rather than only setting the attribute.
+
 ### Ordering gotcha
 
 `create()` tags the transform and *then* renames it. That works, but note that `tag.create` takes the node name as a string — if you move the rename earlier, the tag calls must use the post-rename name. Keep tagging and renaming adjacent so the dependency stays obvious.
@@ -193,12 +222,27 @@ Guides do **not** get `deform` or `kinematics`. A single guide can drive both IK
 
 Guides in existing scene files carry a **string** `side`. There is no in-place migration in this phase. Respawn guides in a fresh scene when you test. If you have a scene worth keeping, delete the old attribute with `tag.destroy` and retag.
 
+### Not in this step — the side prefix
+
+Phase 2 derives a name prefix from this attribute at spawn time, using the mapping you confirmed:
+
+| `side` | Prefix | Guide | Joint |
+|--------|--------|-------|-------|
+| `left` | `L_` | `L_upperArm_guide` | `L_upperArm_jnt` |
+| `right` | `R_` | `R_upperArm_guide` | `R_upperArm_jnt` |
+| `center` | `C_` | `C_spine_guide` | `C_spine_jnt` |
+| `none` | none | `prop_guide` | `prop_jnt` |
+
+Do **not** implement the prefix in 1c. It belongs with the rest of the naming work in Phase 2, and adding it now would leave guide names and the still-unfixed joint naming inconsistent mid-phase. The table is here so the decision is not lost; it still needs writing into [`METADATA_SCHEMA.md`](METADATA_SCHEMA.md).
+
 ### 1c exit criteria
 
 - [ ] Spawned guides show `side` as a channel-box dropdown
 - [ ] `cmds.getAttr('fk_guide.side', asString=True)` returns a label
 - [ ] `componentType`, `module`, `subModule` are still strings
+- [ ] `side` is editable in the channel box; the other three are locked
 - [ ] Guides carry no `deform` or `kinematics`
+- [ ] Guide names are unchanged — no prefix yet
 
 ---
 
@@ -225,7 +269,7 @@ Guides in existing scene files carry a **string** `side`. There is no in-place m
 def _tag_node(self, node, component_type, deform=None, kinematics=KINEMATICS_NONE):
 ```
 
-Write `deform` only when `component_type == 'joint'`, so `None` means "not a joint" and `False` means "a joint that does not skin". Those are different states and collapsing them will cost you an hour in Phase 8.
+Write `deform` only when `component_type == 'joint'`, so `None` means "not a joint" and `False` means "a joint that does not skin". Those are different states and collapsing them will cost you an hour in Phase 9.
 
 Thread the parameters through `_create_joint` and `_create_control` so callers set them at creation:
 
@@ -235,9 +279,18 @@ self._create_joint(name, deform=True, kinematics=KINEMATICS_FK)
 
 Sensible defaults for the simple case: `deform=True` on joints and `kinematics=KINEMATICS_NONE` everywhere. FK modules then only override what differs.
 
+### Why `deform` carries more weight than it looks
+
+It is not just a skinning flag. Since game export is a project requirement, this one boolean decides which of two hierarchies a joint lives in:
+
+- `deform = true` — joins the contiguous deform skeleton under `deform_GRP`, and is exported
+- `deform = false` — a driver joint under `joints_GRP`, never exported, reaching the skeleton through constraints
+
+Phase 2 reads this tag to route parenting. Getting it wrong later means an extra bone in the exported skeleton, which is exactly the class of defect the hierarchy rules exist to prevent. See [`METADATA_SCHEMA.md`](METADATA_SCHEMA.md) section 5.
+
 ### Add `_create_effector`
 
-Effectors are IK handles, pole vector locators, and reverse-foot pivots — rig plumbing that is neither a joint nor an animator control. Nothing in Phase 1 creates one, but adding the tagging path now means Phase 8 is a call site rather than a refactor.
+Effectors are IK handles, pole vector locators, and reverse-foot pivots — rig plumbing that is neither a joint nor an animator control. Nothing in Phase 1 creates one, but adding the tagging path now means Phase 9 is a call site rather than a refactor.
 
 The helper does not need to create geometry. It should accept an **existing** node, since `cmds.ikHandle` returns nodes Maya has already made, and tag it with `componentType='effector'`. A thin `_tag_existing_node` used by `_create_effector` is enough.
 
@@ -272,7 +325,7 @@ Add the keys to the `guide` tool-call args:
 
 Watch the casing: the constructor parameter is `submodule` but the Maya attribute is `subModule`. Pick one convention for the JSON and be deliberate about it — mismatched casing here produces a `TypeError` on spawn.
 
-Leave the `ik chain`, `Root`, and `Spine` entries alone. `ik chain` is removed in Phase 4; the other two are wired up in Phases 6 and 7.
+Leave the `ik chain`, `Root`, and `Spine` entries alone. `ik chain` is removed in Phase 3, when template definitions are reworked; `Root` and `Spine` are wired up in Phases 7 and 8.
 
 ### 1e exit criteria
 
@@ -301,7 +354,13 @@ print(cmds.attributeQuery('side', node='fk_guide', listEnum=True))
 # ['none:center:left:right']
 ```
 
-Confirm in the channel box that `side` is a dropdown and all four metadata attributes are locked.
+Confirm in the channel box that `side` is an editable dropdown and that `componentType`, `module`, and `subModule` are locked:
+
+```python
+for attr in ['componentType', 'module', 'subModule', 'side']:
+    print(attr, cmds.getAttr(f'fk_guide.{attr}', lock=True))
+# componentType True / module True / subModule True / side False
+```
 
 ### Test 2 — Boolean round-trip
 
@@ -338,11 +397,18 @@ for attr in ['componentType', 'module', 'subModule', 'side', 'guideNode',
 
 Expect all seven present on the joint. Repeat for the control and expect six, with `deform` absent.
 
-### Test 5 — Deform query
+### Test 5 — Deform query and the argument guard
 
 ```python
 print(query.find_deform_joints())   # ['fk_jnt']
+print(query.find_driver_joints())   # []
 print(query.find_effectors())       # []
+
+# Should raise ValueError, not a bare Maya attribute error
+try:
+    query.find_control_for_guide('persp')
+except ValueError as e:
+    print('guard ok:', e)
 ```
 
 ### Test 6 — Sided guide
@@ -360,7 +426,9 @@ Temporarily set the FK template's `side` to `"left"`, spawn, and confirm the gui
 - [ ] Controls carry those four plus `guideNode` and `kinematics`, and no `deform`
 - [ ] An effector tagging path exists
 - [ ] Enums read back as labels everywhere; no code compares a raw `getAttr` result to a label string
-- [ ] `find_deform_joints` and `find_effectors` work
+- [ ] `find_deform_joints`, `find_driver_joints`, and `find_effectors` work
+- [ ] `find_control_for_guide` guards its argument like `find_joint_for_guide` does
+- [ ] `side` is unlocked on guides; every other metadata attribute is locked
 - [ ] The FK template passes `subModule` and `side`
 - [ ] [`METADATA_SCHEMA.md`](METADATA_SCHEMA.md) matches the code, with **planned** markers removed for anything now implemented
 
@@ -388,6 +456,8 @@ Check in per step (*"Phase 1a done — please review"*) or at the end of the pha
 | Two FK guides both target `fk_jnt` | Phase 2 |
 | Nested guides produce unnested joints | Phase 2 |
 | Re-pressing Build Joints duplicates nodes | Phase 2 |
-| No `guides_GRP`, `joints_GRP`, or `deform_GRP` | Phase 2 |
-| Controls are plain circles | Phase 3 |
-| Nothing consumes the `deform` tag yet | Phase 5 |
+| Group constants exist but nothing is parented into them | Phase 2 |
+| No `deform_GRP`, no `deform_skeleton` or `controls` sets | Phase 2 |
+| No side prefix on guide names | Phase 2 |
+| Controls are plain circles | Phase 4 |
+| Nothing consumes the `deform` tag yet | Phase 6 |
