@@ -1,6 +1,6 @@
 # RigBox Progress
 
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-07
 **Branch:** `main`
 **Roadmap:** [`docs/RIGBOX_PROJECT_PLAN.md`](docs/RIGBOX_PROJECT_PLAN.md)
 **Metadata contract:** [`docs/METADATA_SCHEMA.md`](docs/METADATA_SCHEMA.md)
@@ -32,7 +32,18 @@ Everything from before the reset is in [`docs/archive/`](docs/archive/README.md)
 | **9** | Extremity Modules — foot, finger | Not started |
 | **10** | Polish and Distribution | Not started |
 
-Breakdowns are written one phase at a time as `docs/PHASE_N.md`. Current: [`docs/PHASE_1.md`](docs/PHASE_1.md).
+Breakdowns are written one phase at a time as `docs/PHASE_N.md`. Current: [`docs/PHASE_1.md`](docs/PHASE_1.md) — **1a complete**, resume at **1b**.
+
+### Phase 1 sub-steps
+
+| Step | Work | Status |
+|------|------|--------|
+| 1a | Typed `tag.create` (string, bool, enum) | **Complete** |
+| 1b | Query constants and typed readers | Not started |
+| 1c | Guide `side` as enum | Not started |
+| 1d | Full tagging on built nodes | Not started |
+| 1e | Template args | Not started |
+| 1f | Maya verification | Not started |
 
 ---
 
@@ -42,8 +53,8 @@ Written before the reset and still valid. **Do not rebuild these** — later pha
 
 | Capability | Files |
 |------------|-------|
-| String metadata tagging and removal | [`metadata/tag.py`](metadata/tag.py) |
-| Scene queries for guides, joints, controls | [`metadata/query.py`](metadata/query.py) |
+| Typed metadata tagging (string, bool, enum) with create-or-update | [`metadata/tag.py`](metadata/tag.py) |
+| String-only query helpers for guides, joints, controls | [`metadata/query.py`](metadata/query.py) |
 | Guide spawn with metadata; parents under a selected guide | [`guides/base/guide.py`](guides/base/guide.py), [`guides/fk/guide.py`](guides/fk/guide.py) |
 | Module base with joint and control creation helpers | [`modules/base/module.py`](modules/base/module.py) |
 | FK module producing one joint and one control | [`modules/fk/module.py`](modules/fk/module.py) |
@@ -59,10 +70,9 @@ Each is owned by a phase. Do not fix them ad hoc.
 
 | Gap | Owned by |
 |-----|----------|
-| `tag.py` writes only string attributes; no boolean or enum | Phase 1 |
-| `deform` and `kinematics` attributes do not exist | Phase 1 |
-| `side` is a string rather than an enum | Phase 1 |
-| `effector` is not a recognized `componentType` | Phase 1 |
+| `deform` and `kinematics` attributes do not exist on nodes | Phase 1 (1b–1d) |
+| `side` is a string rather than an enum on guides | Phase 1 (1c) |
+| `effector` is not a recognized `componentType` in query | Phase 1 (1b) |
 | No `guides_GRP`, `joints_GRP`, or `deform_GRP` | Phase 2 |
 | No `deform_skeleton` or `controls` selection sets | Phase 2 |
 | Joint and control names collide across guides in the same module | Phase 2 |
@@ -95,9 +105,7 @@ Answer before the owning phase begins. Detail in [`RIGBOX_PROJECT_PLAN.md`](docs
 
 ## Resume here
 
-**Phase 1 — Metadata Foundation.** Read [`docs/PHASE_1.md`](docs/PHASE_1.md) for the step-by-step breakdown.
-
-Check in with *"Phase 1 done — please review"*, or per step, for example *"Phase 1a done — please review"*.
+**Phase 1b — Constants and typed readers in [`metadata/query.py`](metadata/query.py).** See [`docs/PHASE_1.md`](docs/PHASE_1.md) step 1b.
 
 ---
 

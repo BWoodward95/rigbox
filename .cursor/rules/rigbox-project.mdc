@@ -20,6 +20,8 @@ For additional design inspiration refer to mGear Shifter and ZooTools Hive autor
 - `ui/` — graphical user interface elements designed with PySide6
 
 ## Metadata Goals
+Enumerated tags provide a general guideline, but is not a strict or exclusive list of possible tags.
+
 `module` - **String**:  Defines the class of module that a given node belongs to. (e.g. root, arm, leg)
 
 `subModule` - **String**: Defines which component of the module that a given node belongs to. (e.g. upper_arm, spine_01, index_metacarpal)
@@ -37,6 +39,8 @@ For additional design inspiration refer to mGear Shifter and ZooTools Hive autor
 All guides and modules should extend logic from `guides/base/` and `modules/base/` respectively.
 
 ### Module Pipeline:
+Enumerated steps provide a general guideline, but is not a strict or exclusive list of possible steps.
+
 1. Guide Step:
     1. Guide templates are selected from the template ui. Guides contain metadata attributes that instruct Rigbox on which module scripts to call with keyword modifiers for side (left/right/center).
     3. Guides are nested under a `guides_GRP` node.
@@ -69,6 +73,7 @@ All guides and modules should extend logic from `guides/base/` and `modules/base
     1. With one or more meshes selected, joints with the `deform` metadata tag set to `true` node are skinned to the mesh.
 
 ### Module Template Structure    
+Enumerated modules provide a general guideline, but is not a strict or exclusive list of possible modules.
 
 - `fk`
     - Guide Structure:
